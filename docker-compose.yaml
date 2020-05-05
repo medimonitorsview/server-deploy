@@ -1,0 +1,101 @@
+version: "3.3"
+
+volumes:
+  mongo-db:
+  grafana-storage:
+  prom-data:
+  logs:
+  prom-db:
+  applications-storage:
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.17
+    restart: always
+    environment: 
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+  mongo:
+    image: mongo:4.2
+    restart: always
+    ports:
+    - "27017:27017"
+    volumes:
+      - "mongo-db:/data/db"
+  prom:
+    image: prom/prometheus
+    restart: always 
+    user: '0'
+    volumes:
+      - ${PWD}/prom/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - "prom-db:/prometheus/"
+    ports:
+      - "9090:9090"
+    depends_on:
+      - mongo
+  grafana:
+    image: grafana/grafana 
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana/
+    depends_on:
+      - prom
+      - mongo
+    expose:
+      - 3000
+  cvbackend:
+    image: cdome2019/monitor-cv:v0.4.0
+    restart: always
+    environment:
+      CVMONITOR_ORIENT_BY_EXIF: ${CVMONITOR_ORIENT_BY_EXIF:-TRUE}
+      CVMONITOR_ORIENT_BY_QR: ${CVMONITOR_ORIENT_BY_QR:-FALSE}
+      CVMONITOR_QR_PREFIX: ${CVMONITOR_QR_PREFIX:-cvmonitor}
+      CVMONITOR_QR_TARGET_SIZE: ${CVMONITOR_QR_TARGET_SIZE:-100}
+      CVMONITOR_QR_BOUNDERY_SIZE: ${CVMONITOR_QR_BOUNDERY_SIZE:-50}
+      CVMONITOR_SAVE_BEFORE_ALIGN: ${CVMONITOR_SAVE_BEFORE_ALIGN:-FALSE}
+      CVMONITOR_SAVE_AFTER_ALIGN: ${CVMONITOR_SAVE_AFTER_ALIGN:-FALSE}
+      CVMONITOR_QR_PDF_ROWS: ${CVMONITOR_QR_PDF_ROWS:-6}
+      CVMONITOR_QR_PDF_COLS: ${CVMONITOR_QR_PDF_COLS:-4}
+      CVMONITOR_LOG_LEVEL: ${CVMONITOR_LOG_LEVEL:-DEBUG}
+      CVMONITOR_HOST: ${CVMONITOR_HOST:-0.0.0.0}
+      CVMONITOR_PORT: ${CVMONITOR_PORT:-8088}
+      CVMONITOR_SKIP_ALIGN: ${CVMONITOR_SKIP_ALIGN:-TRUE}
+    depends_on: 
+       - jaeger
+    volumes:
+      - "logs:/opt/app/log"
+  backend:
+    image: cdome2019/monitor-backend:v0.4.0
+    restart: always
+    environment:
+      CVMONITOR_HOST: cvbackend
+      DB_CONNECTION: mongodb://mongo/test
+      COVIEW_HOST: ${COVIEW_HOST:-localhost}
+      COVIEW_PORT: ${COVIEW_PORT:-8080}
+      COVIEW_ENABLED: ${COVIEW_ENABLED:-false}
+      APPLICATIONS_LOCATION: ${APPLICATIONS_LOCATION:-./Applications}
+    volumes:
+      - "applications-storage:/backend/Applications"
+    depends_on:
+      - cvbackend
+      - mongo
+      - jaeger
+  frontend:
+      image: cdome2019/monitor-frontend:v0.4.0
+      restart: always
+      depends_on: 
+        - backend
+  nginx:
+    image: nginx
+    restart: always
+    ports:
+    #  - "443:443"
+      - "80:80"
+    volumes:
+    - ${PWD}/nginx/conf/reverse.conf:/etc/nginx/conf.d/default.conf
+    #- ${PWD}/nginx/certs:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - frontend
+      - cvbackend
