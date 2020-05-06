@@ -45,7 +45,7 @@ services:
     expose:
       - 3000
   cvbackend:
-    image: cdome2019/monitor-cv:v0.4.0
+    image: cdome2019/monitor-cv:v0.4.1
     restart: always
     environment:
       CVMONITOR_ORIENT_BY_EXIF: ${CVMONITOR_ORIENT_BY_EXIF:-TRUE}
@@ -82,7 +82,7 @@ services:
       - mongo
       - jaeger
   frontend:
-      image: cdome2019/monitor-frontend:v0.4.0
+      image: cdome2019/monitor-frontend:v0.4.3
       restart: always
       depends_on: 
         - backend
