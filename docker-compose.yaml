@@ -74,6 +74,8 @@ services:
       COVIEW_HOST: ${COVIEW_HOST:-localhost}
       COVIEW_PORT: ${COVIEW_PORT:-8080}
       COVIEW_ENABLED: ${COVIEW_ENABLED:-false}
+      COVIEW_ENABLED: ${COVIEW_ENABLED:-false}
+      COVIEW_LOG_REQUESTS: ${COVIEW_LOG_REQUESTS:-false}
       APPLICATIONS_LOCATION: ${APPLICATIONS_LOCATION:-./Applications}
     volumes:
       - "applications-storage:/backend/Applications"
