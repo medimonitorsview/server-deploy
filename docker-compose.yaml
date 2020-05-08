@@ -84,7 +84,7 @@ services:
       - mongo
       - jaeger
   frontend:
-      image: cdome2019/monitor-frontend:v0.4.3
+      image: cdome2019/monitor-frontend:v0.4.4
       restart: always
       depends_on: 
         - backend
